@@ -11,7 +11,7 @@ pipeline {
     stages {
         stage('Clone') {
             steps {
-                git branch: 'main', url 'https://github.com/fahad3853/spring-petclinic.git' // Replace with your GitHub repository URL
+                git branch: 'main', url: 'https://github.com/fahad3853/spring-petclinic.git' // Replace with your GitHub repository URL
             }
         }
         

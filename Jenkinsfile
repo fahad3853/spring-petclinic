@@ -20,65 +20,48 @@ pipeline {
                 sh 'mvn clean package -DskipTests' // Builds the project and creates the JAR file
             }
         }
-        
-        stage('Test') {
+
+        stage('Build Docker Image') {
             steps {
-                sh 'docker-compose up -d' // Run the application in a Docker container
                 script {
-                    def appRunning = sh(script: "curl -s http://localhost:8080/actuator/health | grep 'UP'", returnStatus: true)
-                    if (appRunning != 0) {
-                        error("Application failed to start.")
+                    // Build Docker image
+                    sh 'docker build -t ${DOCKERHUB_REPO}:latest .'
+                }
+            }
+        }
+        
+        stage('Run and Test Docker Container') {
+            steps {
+                script {
+                    // Run Docker container on port 8082
+                    sh 'docker run -d --name spring-petclinic-test -p 8082:8080 ${DOCKERHUB_REPO}:latest'
+                    
+                    // Wait for the application to start
+                    sleep(time: 30, unit: 'SECONDS')
+                    
+                    // Test the application
+                    def statusCode = sh(script: 'curl -s -o /dev/null -w "%{http_code}" http://localhost:8082/actuator/health', returnStdout: true).trim()
+                    if (statusCode != '200') {
+                        error "Application is not running. Status code: ${statusCode}"
                     }
+                    
+                    // Stop and remove the container
+                    sh 'docker stop spring-petclinic-test'
+                    sh 'docker rm spring-petclinic-test'
                 }
             }
         }
         
-        stage('Create Docker Image') {
-            when {
-                expression { sh(script: "curl -s http://localhost:8080/actuator/health | grep 'UP'", returnStatus: true) == 0 }
-            }
-            steps {
-                sh "docker build -t ${DOCKERHUB_REPO}:latest ."
-            }
-        }
-        
-        stage('Push Docker Image') {
-            when {
-                expression { sh(script: "curl -s http://localhost:8080/actuator/health | grep 'UP'", returnStatus: true) == 0 }
-            }
-            steps {
-                script {
-                    docker.withRegistry('', 'DOCKERHUB_CREDENTIALS') {
-                        sh "docker push ${DOCKERHUB_REPO}:latest"
-                    }
-                }
-            }
-        }
-        
-        stage('Push JAR to Nexus') {
-            steps {
-                script {
-                    def jarFile = findFiles(glob: '**/target/*.jar')[0]
-                    sh """
-                        curl -v -u ${NEXUS_CREDENTIALS_USR}:${NEXUS_CREDENTIALS_PSW} \
-                        --upload-file ${jarFile.path} \
-                        ${NEXUS_REPO_URL}${jarFile.name}
-                    """
-                }
-            }
-        }
-        
-        stage('Deploy to Kubernetes') {
-            steps {
-                sh 'kubectl apply -f k8s/deployment.yaml' // Assumes you have a Kubernetes deployment YAML file ready
-                sh 'kubectl apply -f k8s/service.yaml' // Assumes you have a Kubernetes service YAML file ready
-            }
-        }
-    }
-    
-    post {
-        always {
-            sh 'docker-compose down' // Stop the Docker container
-        }
+       // stage('Push Docker Image') {
+         //   steps {
+           //     script {
+                    // Login to DockerHub
+             //       sh 'echo ${DOCKERHUB_CREDENTIALS_PSW} | docker login -u ${DOCKERHUB_CREDENTIALS_USR} --password-stdin'
+                    
+                    // Push Docker image to DockerHub
+               //     sh 'docker push ${DOCKERHUB_REPO}:latest'
+//                }
+  //          }
+    //    }
     }
 }

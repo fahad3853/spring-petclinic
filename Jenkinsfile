@@ -51,11 +51,3 @@ pipeline {
             }
         }
     }
-    
-    post {
-        always {
-            // Clean up Docker Compose
-            sh 'docker-compose down'
-        }
-    }
-}

@@ -30,31 +30,32 @@ pipeline {
             }
         }
         
-        stage('Run and Test Docker Container') {
+        stage('Manage Docker Containers') {
             steps {
                 script {
-                    // Remove any existing container with the same name
-                    sh 'docker rm -f spring-petclinic-test || true'
+                    // Stop and remove any existing containers
+                    sh 'docker-compose down'
                     
-                    // Run Docker container with a dynamically allocated host port
-                    def portMapping = sh(script: 'docker run -d -P --name spring-petclinic-test ${DOCKERHUB_REPO}:latest', returnStdout: true).trim()
-                    
-                    // Extract the dynamically allocated port
-                    def containerPort = sh(script: 'docker port spring-petclinic-test', returnStdout: true).trim().split(":")[1]
+                    // Start the container using Docker Compose
+                    sh 'docker-compose up -d'
                     
                     // Wait for the application to start
                     sleep(time: 30, unit: 'SECONDS')
                     
                     // Test the application
-                    def statusCode = sh(script: "curl -s -o /dev/null -w \"%{http_code}\" http://localhost:${containerPort}/actuator/health", returnStdout: true).trim()
+                    def statusCode = sh(script: 'curl -s -o /dev/null -w "%{http_code}" http://localhost:8082/actuator/health', returnStdout: true).trim()
                     if (statusCode != '200') {
                         error "Application is not running. Status code: ${statusCode}"
                     }
-                    
-                    // Print a message indicating the container is running and accessible
-                    echo "Container is running and accessible at http://localhost:${containerPort}"
                 }
             }
+        }
+    }
+    
+    post {
+        always {
+            // Clean up Docker Compose
+            sh 'docker-compose down'
         }
     }
 }

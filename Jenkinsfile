@@ -33,23 +33,26 @@ pipeline {
         stage('Run and Test Docker Container') {
             steps {
                 script {
-                    // Generate a unique container name
-                    def containerName = "spring-petclinic-test-${env.BUILD_ID}"
+                    // Remove any existing container with the same name
+                    sh 'docker rm -f spring-petclinic-test || true'
                     
-                    // Run Docker container on port 8082
-                    sh "docker run -d --name ${containerName} -p 8082:8080 ${DOCKERHUB_REPO}:latest"
+                    // Run Docker container with a dynamically allocated host port
+                    def portMapping = sh(script: 'docker run -d -P --name spring-petclinic-test ${DOCKERHUB_REPO}:latest', returnStdout: true).trim()
+                    
+                    // Extract the dynamically allocated port
+                    def containerPort = sh(script: 'docker port spring-petclinic-test', returnStdout: true).trim().split(":")[1]
                     
                     // Wait for the application to start
                     sleep(time: 30, unit: 'SECONDS')
                     
                     // Test the application
-                    def statusCode = sh(script: 'curl -s -o /dev/null -w "%{http_code}" http://localhost:8082/actuator/health', returnStdout: true).trim()
+                    def statusCode = sh(script: "curl -s -o /dev/null -w \"%{http_code}\" http://localhost:${containerPort}/actuator/health", returnStdout: true).trim()
                     if (statusCode != '200') {
                         error "Application is not running. Status code: ${statusCode}"
                     }
                     
                     // Print a message indicating the container is running and accessible
-                    echo "Container is running and accessible at http://localhost:8082"
+                    echo "Container is running and accessible at http://localhost:${containerPort}"
                 }
             }
         }

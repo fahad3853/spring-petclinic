@@ -33,8 +33,11 @@ pipeline {
         stage('Run and Test Docker Container') {
             steps {
                 script {
+                    // Generate a unique container name
+                    def containerName = "spring-petclinic-test-${env.BUILD_ID}"
+                    
                     // Run Docker container on port 8082
-                    sh 'docker run -d --name spring-petclinic-test -p 8082:8080 ${DOCKERHUB_REPO}:latest'
+                    sh "docker run -d --name ${containerName} -p 8082:8080 ${DOCKERHUB_REPO}:latest"
                     
                     // Wait for the application to start
                     sleep(time: 30, unit: 'SECONDS')

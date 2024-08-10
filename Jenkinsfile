@@ -45,23 +45,10 @@ pipeline {
                         error "Application is not running. Status code: ${statusCode}"
                     }
                     
-                    // Stop and remove the container
-                    sh 'docker stop spring-petclinic-test'
-                    sh 'docker rm spring-petclinic-test'
+                    // Print a message indicating the container is running and accessible
+                    echo "Container is running and accessible at http://localhost:8082"
                 }
             }
         }
-        
-       // stage('Push Docker Image') {
-         //   steps {
-           //     script {
-                    // Login to DockerHub
-             //       sh 'echo ${DOCKERHUB_CREDENTIALS_PSW} | docker login -u ${DOCKERHUB_CREDENTIALS_USR} --password-stdin'
-                    
-                    // Push Docker image to DockerHub
-               //     sh 'docker push ${DOCKERHUB_REPO}:latest'
-//                }
-  //          }
-    //    }
     }
 }

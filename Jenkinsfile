@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/fahad3853/spring-petclinic.git'
+                git branch: 'main', url: 'https://github.com/fahad3853/spring-petclinic.git'
             }
         }
         stage('Build JAR') {

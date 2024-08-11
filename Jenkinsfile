@@ -1,53 +1,49 @@
 pipeline {
     agent any
-    
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials') // Replace with your DockerHub credentials ID
-        NEXUS_CREDENTIALS = credentials('nexus-credentials') // Replace with your Nexus credentials ID
-        DOCKERHUB_REPO = 'fahadkhan3853/spring-petclinic' // Replace with your DockerHub repository
-        NEXUS_REPO_URL = 'http://your-nexus-repo-url/repository/maven-releases/' // Replace with your Nexus repository URL
+        DOCKER_IMAGE = 'fahadkhan3853/spring-petclinic:latest'
+        APP_PORT = '8081'
+        DOCKER_PORT = '8082'
     }
-    
     stages {
-        stage('Clone') {
+        stage('Clone Repository') {
             steps {
-                git branch: 'main', url: 'https://github.com/fahad3853/spring-petclinic.git' // Replace with your GitHub repository URL
+                git 'https://github.com/fahad3853/spring-petclinic.git'
             }
         }
-        
-        stage('Build') {
+        stage('Build JAR') {
             steps {
-                sh 'mvn clean package -DskipTests' // Builds the project and creates the JAR file
+                sh './mvn clean package -DskipTests'
             }
         }
-
         stage('Build Docker Image') {
             steps {
-                script {
-                    // Build Docker image
-                    sh 'docker build -t ${DOCKERHUB_REPO}:latest .'
+                sh 'docker build -t $DOCKER_IMAGE .'
+            }
+        }
+        stage('Run Docker Compose') {
+            steps {
+                sh """
+                echo "Running Docker container on port $DOCKER_PORT"
+                docker-compose down
+                docker-compose up -d
+                """
+            }
+        }
+        stage('Push to DockerHub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                    sh 'docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD'
+                    sh 'docker push $DOCKER_IMAGE'
                 }
             }
         }
-        
-        stage('Manage Docker Containers') {
+        stage('Deploy to Kubernetes') {
             steps {
-                script {
-                    // Stop and remove any existing containers
-                    sh 'docker-compose down'
-                    
-                    // Start the container using Docker Compose
-                    sh 'docker-compose up -d'
-                    
-                    // Wait for the application to start
-                    sleep(time: 30, unit: 'SECONDS')
-                    
-                    // Test the application
-                    def statusCode = sh(script: 'curl -s -o /dev/null -w "%{http_code}" http://localhost:8082/actuator/health', returnStdout: true).trim()
-                    if (statusCode != '200') {
-                        error "Application is not running. Status code: ${statusCode}"
-                    }
-                }
+                sh """
+                kubectl apply -f k8s/deployment.yaml
+                kubectl apply -f k8s/service.yaml
+                """
             }
         }
     }

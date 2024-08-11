@@ -6,7 +6,7 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
-  - host: 65.0.11.198  # Replace with your domain or IP address
+  - host: 	theawscloud.live  # your domain or IP address
     http:
       paths:
       - path: /  # Route all traffic

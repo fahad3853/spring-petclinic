@@ -5,6 +5,7 @@ pipeline {
         APP_PORT = '8081'
         DOCKER_PORT = '8082'
         KUBECONFIG = '/var/lib/jenkins/.kube/config'
+        
     }
     stages {
         stage('Clone Repository') {
@@ -37,6 +38,13 @@ pipeline {
                     sh 'docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD'
                     sh 'docker push $DOCKER_IMAGE'
                 }
+            }
+        }
+        stage('Deploy NGINX Ingress Controller') {
+            steps {
+                sh """
+                kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+                """
             }
         }
         stage('Deploy to Kubernetes') {

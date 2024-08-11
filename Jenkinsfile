@@ -4,6 +4,7 @@ pipeline {
         DOCKER_IMAGE = 'fahadkhan3853/spring-petclinic:latest'
         APP_PORT = '8081'
         DOCKER_PORT = '8082'
+        KUBECONFIG = '/root/.kube/config'
     }
     stages {
         stage('Clone Repository') {

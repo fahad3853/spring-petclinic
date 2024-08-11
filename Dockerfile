@@ -11,4 +11,4 @@ COPY target/*.jar /app
 EXPOSE 8082
 
 # Command to run the application
-CMD ["java", "-jar", "/app/your-app.jar", "--server.port=8082"]
+CMD ["java", "-jar", "/app/spring-petclinic-3.3.0-SNAPSHOT.jar", "--server.port=8082"]
